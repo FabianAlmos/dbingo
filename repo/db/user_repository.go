@@ -15,7 +15,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (u *UserRepository) GetByID(id int64) (*model.User, error) {
-	stmt, err := u.db.Prepare("SELECT id, first_name || ' ' || last_name FROM person WHERE person.id = $1")
+	stmt, err := u.db.Prepare("SELECT id, first_name, last_name FROM users WHERE users.id = $1")
 	if err != nil {
 		return nil, errors.New("can not prepare statement to get users by id")
 	}
@@ -27,7 +27,7 @@ func (u *UserRepository) GetByID(id int64) (*model.User, error) {
 	}
 
 	user := &model.User{}
-	err = row.Scan(&user.ID, &user.Name)
+	err = row.Scan(&user.ID, &user.FirstName, &user.LastName)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -37,13 +37,13 @@ func (u *UserRepository) GetByID(id int64) (*model.User, error) {
 	return user, nil
 }
 
-func (u *UserRepository) GetAllUsers(limit, offset uint) ([]*model.User, error) {
-	stmt, err := u.db.Prepare("SELECT id, concat(first_name, ' ', last_name) FROM person LIMIT $1 from $2")
+func (u *UserRepository) GetAllUsers() ([]*model.User, error) {
+	stmt, err := u.db.Prepare("SELECT id, first_name, last_name FROM users")
 	if err != nil {
-		return nil, errors.New("can not prepare statement to get all user")
+		return nil, errors.New("can not prepare statement to get all users")
 	}
 
-	rows, err := stmt.Query(limit, offset)
+	rows, err := stmt.Query()
 	if err != nil {
 		return nil, errors.New("select user failed")
 	}
@@ -52,7 +52,7 @@ func (u *UserRepository) GetAllUsers(limit, offset uint) ([]*model.User, error) 
 	var users []*model.User
 	for rows.Next() {
 		user := &model.User{}
-		err = rows.Scan(&user.ID, &user.Name)
+		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName)
 		if err == sql.ErrNoRows {
 			return nil, nil
 		} else if err != nil {
@@ -64,14 +64,15 @@ func (u *UserRepository) GetAllUsers(limit, offset uint) ([]*model.User, error) 
 }
 
 func (u *UserRepository) Create(user *model.User) error {
-	stmt, err := u.db.Prepare("INSERT INTO person (id, first_name, middle_name, last_name, nickname) VALUES (id, first_name, middle_name, last_name, nickname)")
+	stmt, err := u.db.Prepare("INSERT INTO users (first_name, middle_name, last_name) VALUES ($1, $2, $3)")
 	if err != nil {
-		return errors.New("can not prepare statement to get all user")
+		return errors.New("can not prepare statement to insert new user")
 	}
-	row := stmt.QueryRow(user.ID, user.Name)
-	err = row.Err()
+
+	_, err = stmt.Exec(user.FirstName, user.MiddleName, user.LastName)
 	if err != nil {
 		return errors.New("insert into users failed")
 	}
+
 	return nil
 }

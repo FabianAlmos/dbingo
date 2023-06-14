@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -12,21 +11,11 @@ import (
 )
 
 func main() {
-	connStr := "postgres://dbdata:dbdatapswd@localhost/lesson"
-
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		panic(err)
-	}
+	db := dbrepo.GetDB()
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
 	ur := dbrepo.NewUserRepository(db)
-	user, err := ur.GetByID(0)
+	user, err := ur.GetByID(1)
 	if err != nil {
 		panic(err)
 	}
@@ -37,15 +26,7 @@ func main() {
 
 	fmt.Println(user)
 
-	page := 2
-	pageSize := 1
-
-	var (
-		limit  uint = 1
-		offset uint = 0
-	)
-
-	users, err := ur.GetAllUsers(limit, offset)
+	users, err := ur.GetAllUsers()
 	if err != nil {
 		panic(err)
 	}
@@ -58,6 +39,6 @@ func main() {
 		fmt.Println(*u)
 	}
 
-	http.HandleFunc("/api/users", handler.PostUser)
+	http.HandleFunc("/api/users", handler.CreateUser)
 	http.ListenAndServe(":3000", nil)
 }
